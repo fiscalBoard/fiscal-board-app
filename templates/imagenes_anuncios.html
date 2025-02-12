@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+ 
+</head>
+<body>
+    {% include 'header.html' %}
+    <div class="container">         
+        <h2 class="mt-5">{{ negocio.nombre if negocio else 'Mis Anuncios' }} ({{ negocio.tipo_negocio if negocio else '' }})</h2>
+        <h2 class="mt-5">{{ cartelera.titulo if cartelera else '---' }} </h2>
+        {% if anuncios %}
+            <div class="row">
+                {% for anuncio in anuncios %}
+                    {% if anuncio.archivo %}
+                        <div class="col-md-4 mb-3 ">
+                            <div class="card">
+                                <script>
+                                    console.log("URL IMAGEN {{url_for('serve_image',filename=anuncio.archivo).split("/html")[1]}}")
+                                </script>
+                                <img src="{{url_for('serve_image',filename=anuncio.archivo).split("/html")[1]}}" class="card-img-top image-item" alt="Imagen de {{ anuncio.titulo }}">
+                                <div class="card-body">
+                                    <p class="card-title">{{ anuncio.tipo_documento }}</p>
+                                    <p hidden class="card-text">{{ anuncio.descripcion }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No tienes imágenes de anuncios disponibles.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

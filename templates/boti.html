@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interacción con el Bot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input, textarea {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            text-wrap: pretty;
+        }
+        .response {
+            background-color: #e9ecef;
+            padding: 15px;
+     
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Interacción con el Bot</h1>
+    <form id="botForm">
+        <h2>Ingrese su solicitud</h2>
+        <textarea id="textInput" rows="5" placeholder="Escribe tu contenido aquí..."></textarea>
+        <button type="submit">Enviar</button>
+    </form>
+    
+    <div id="responseOutput" class="response" style="display: none;"></div>
+</div>
+
+<script>
+    document.getElementById('botForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const textInput = document.getElementById('textInput').value;
+        const requestBody = {
+            contents: [{
+                parts: [{ text: textInput }]
+            }]
+        };
+
+        fetch('/bot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        })
+        .then(response => response.json())
+        .then(data => {
+            const responseOutput = document.getElementById('responseOutput');
+            responseOutput.style.display = 'block';
+            // Extraer el texto de las partes y convertir a HTML
+            const texts = data.bot.candidates.map(candidate => 
+                candidate.content.parts.map(part => convertToHTML(part.text)).join('\n')
+            ).join('\n\n');
+            responseOutput.innerHTML = `<h2>Respuesta del Bot</h2><pre>${texts}</pre>`;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+
+    function convertToHTML(text) {
+        return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Reemplaza **texto** por <strong>texto</strong>
+    }
+</script>
+
+</body>
+</html>

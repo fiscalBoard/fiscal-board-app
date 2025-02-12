@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Crear Documento Fiscal</title>
+    <style>
+        #fecha_vigencia {
+            display: none; /* Ocultar el campo de fecha */
+        }
+        #loader {
+            display: none; /* Ocultar el loader por defecto */
+        }
+    </style>
+</head>
+<body>
+    {% include 'header.html' %}
+    <div id="loader" class="loader">
+        <div class="spinner"></div>
+    </div>
+    <div class="container">
+        <h2 class="mt-5">Nuevo Documento</h2>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="tipo_anuncio">Tipo de Documento:</label>
+            <select class="form-control" id="tipo_anuncio" required>
+                <option value='SENIAT'>SENIAT</option>
+                <option value='IVSS'>IVSS</option>
+                <option value='INCES'>INCES</option>
+                <option value='BANAVIH'>BANAVIH</option>
+                <option value='MINPPST'>MINPPST</option>
+                <option value='MUNICIPAL'>MUNICIPAL</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="ruta_imagen">Subir Imagen, PDF, DOC o XLSX:</label>
+            <input type="file" class="form-control-file" id="ruta_imagen" accept="image/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+        </div>
+        <button id="submitButton" class="btn btn-success">Crear Documento</button>
+    </div>
+    <div class="container">
+        {% if documentos %}
+            <h3 class="mt-5">Tus Documentos</h3>
+            <div class="row">
+                {% for anuncio in documentos %}
+                <div class="col-md-3 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ anuncio.tipo_documento }}</h5>
+                            <img class="imagen-anuncio" src="{{ url_for('serve_image', filename=anuncio.archivo).split('/html')[1] }}" alt="{{ anuncio.tipo_documento }}"/>
+                        </div>
+                        <button class="btn btn-danger" onclick="eliminarDocumento({{ anuncio.id }}, '{{ url_for('eliminar_anuncio', id=anuncio.id, cartelera=id) }}')">Eliminar</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No tienes anuncios creados.</p>
+        {% endif %}
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loader = document.getElementById('loader');
+            const submitButton = document.getElementById('submitButton');
+
+            submitButton.addEventListener('click', function() {
+                loader.style.display = 'flex'; // Mostrar el loader
+
+                const tipoAnuncio = document.getElementById('tipo_anuncio').value;
+                const rutaImagen = document.getElementById('ruta_imagen').files[0];
+                const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+                const formData = new FormData();
+                formData.append('tipo_anuncio', tipoAnuncio);
+                formData.append('ruta_imagen', rutaImagen);
+                formData.append('X-CSRF-Token', csrfToken);
+
+                fetch('{{ url_for('crear_documento', id=id) }}',{//'{{ url_for('crear_documento', id=id) }}', {
+                    headers: {'X-CSRF-Token': '{{csrf_token()}}' },
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    loader.style.display = 'none'; // Ocultar el loader
+                    console.log(`RESPONSE ${response}`);
+
+                    if (!response.ok) {
+                        return response.json().then(errorData => {
+                            throw new Error(errorData.message || 'Error al crear el documento');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    //alert(data.message); // Mostrar mensaje de éxito o error
+                    if (data.success) {
+                        window.location.reload(); // Recargar la página para mostrar el nuevo documento
+                    }
+                })
+                .catch(error => {
+                    loader.style.display = 'none'; // Ocultar el loader
+                    alert(error.message); // Mostrar mensaje de error
+                });
+            });
+
+            window.eliminarDocumento = function(id, url) {
+                if (confirm('¿Estás seguro de que deseas eliminar este documento?')) {
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-Token': '{{ csrf_token() }}' // Incluir el token CSRF
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error al eliminar el documento');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        alert(data.message); // Mostrar mensaje de éxito o error
+                        if (data.success) {
+                            window.location.reload(); // Recargar la página para actualizar la lista de documentos
+                        }
+                    })
+                    .catch(error => {
+                        alert(error.message); // Mostrar mensaje de error
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>

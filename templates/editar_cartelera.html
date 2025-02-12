@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+    {% include 'header.html' %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Editar Documento Fiscal</title>
+</head>
+<body>
+    <div class="container">
+        <h2 class="mt-5">Editar Cartelera</h2>
+        
+        <form id="editForm">
+            <div class="form-group">
+                <label for="titulo">Título</label>
+                <input type="text" class="form-control" id="titulo" name="titulo" value="{{ anuncio.titulo }}" required>
+            </div>
+            <div class="form-group">
+                <label for="descripcion">Descripción</label>
+                <textarea class="form-control" id="descripcion" name="descripcion" required>{{ anuncio.descripcion }}</textarea>
+            </div>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">Actualizar Documento</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('editForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevenir el envío del formulario
+
+            const formData = new FormData(this); // Crear un objeto FormData
+            
+            fetch('{{ url_for('editar_cartelera', id=anuncio.id) }}', {
+                headers: {'X-CSRF-Token': '{{csrf_token()}}' },
+                method: 'POST',
+                body: formData,
+                
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en la actualización');
+                }
+                return response.json(); // Parsear la respuesta como JSON
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Cartelera actualizada con éxito.');
+                    window.location.href = '/'; // Redirigir a otra página
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>

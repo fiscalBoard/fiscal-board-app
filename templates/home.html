@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> <!-- Include Font Awesome -->
+    <title>Inicio</title>
+</head>
+<body>
+    {% include 'header.html' %}
+    <div class="container">
+        <div class="mt-4 mb-3 text-center">
+            <a class="btn btn-primary" href="{{ url_for('crear_cartelera') }}">
+                <i class="fas fa-plus"></i> Crear Cartelera
+            </a>
+        </div>
+        {% if anuncios %}
+            <h3 class="text-center mb-4">Tus Carteleras</h3>
+            <div class="row">
+                {% for anuncio in anuncios %}
+                    <div class="col-md-4 mb-4">
+                        <a href="{{ url_for('imagenes_anuncios', cartelera_id=anuncio.id) }}" class="text-decoration-none">  
+                            <div class="card shadow-sm">
+                                <div class="card-body">   
+                                    <h5 class="card-title">{{ anuncio.titulo }}</h5>
+                                    <hr/>
+                                    <p class="card-text">{{ anuncio.descripcion }}</p>
+                                    <hr/>
+                                    <p><strong>Tipos de Documentos:</strong></p>
+                                    <ul>
+                                        {% for tipo in documentos[anuncio.id] %}
+                                            <li class="li-content">{{tipo}}</li>
+                                        {% else %}
+                                        <div>
+                                            <p>No hay documentos asociados.</p>
+                                            <a href="{{ url_for('crear_documento', id=anuncio.id) }}" class="btn btn-info btn-sm mb-btn">
+                                                <i class="fas fa-file-upload"></i> Agregar Documento
+                                            </a>
+                                        </div>
+                                        {% endfor %}
+                                    </ul>
+                                    <hr/>
+                                    <p class="card-text"><strong>Fecha de Publicación:</strong> {{ anuncio.fecha_publicacion }}</p>
+                                    <div class="d-flex justify-content-between mx-tre">
+                                        <div>
+                                            <a href="{{ url_for('editar_cartelera', id=anuncio.id) }}" class="btn btn-warning btn-sm mb-btn">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                            <a href="{{ url_for('crear_documento', id=anuncio.id) }}" class="btn btn-info btn-sm mb-btn">
+                                                <i class="fas fa-file-upload"></i> Agregar Documento
+                                            </a>
+                                            <a href="{{ url_for('imagenes_anuncios', cartelera_id=anuncio.id) }}" class="btn btn-secondary btn-sm mb-btn">
+                                                <i class="fas fa-eye"></i> Ver Presentación
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="delete-button">
+                                        <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteModal" 
+                                                data-id="{{ anuncio.id }}" data-titulo="{{ anuncio.titulo }}" 
+                                                data-documentos="{{ documentos[anuncio.id]|length }}">
+                                            <i class="fas fa-trash-alt"></i> Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-center">No tienes anuncios creados.</p>
+        {% endif %}
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Eliminar Cartelera</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Qué deseas hacer con la cartelera "<span id="modalCarteleraTitulo"></span>"?</p>
+                    <p>Esta cartelera tiene <span id="modalDocumentoCount"></span> documento(s) asociado(s).</p>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="deleteOption" id="deleteDocuments" value="deleteDocuments" checked>
+                        <label class="form-check-label" for="deleteDocuments">
+                            Eliminar todos los documentos asociados y la cartelera
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="deleteOption" id="deleteCartelera" value="deleteCartelera">
+                        <label class="form-check-label" for="deleteCartelera">
+                            Solo eliminar la cartelera (si no tiene documentos asociados)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteButton">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Usar la versión completa de jQuery -->
+    <script>
+        // Manejar la apertura del modal y asignar los datos correspondientes
+        $('#deleteModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var carteleraId = button.data('id');
+            var titulo = button.data('titulo');
+            var documentoCount = button.data('documentos');
+
+            $('#modalCarteleraTitulo').text(titulo);
+            $('#modalDocumentoCount').text(documentoCount);
+
+            // Configurar el evento de confirmación de eliminación
+            $('#confirmDeleteButton').off('click').on('click', function() {
+                confirmDelete(carteleraId, documentoCount);
+            });
+        });
+
+        function confirmDelete(carteleraId, documentoCount) {
+            const csrfToken = "{{ csrf_token() }}";  // Obtener el token CSRF desde Jinja2
+
+            const selectedOption = document.querySelector('input[name="deleteOption"]:checked').value;
+            if (selectedOption === 'deleteDocuments') {
+                // Primero eliminar documentos
+                fetch(`/eliminar_documentos/${carteleraId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': csrfToken // Asegúrate de incluir el token CSRF
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Luego eliminar la cartelera
+                        return fetch(`/eliminar_cartelera/${carteleraId}`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-Token': csrfToken // Asegúrate de incluir el token CSRF
+                            }
+                        });
+                    } else {
+                        throw new Error('Error al eliminar documentos');
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        location.reload(); // Recargar la página para ver los cambios
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            } else {
+                // Solo eliminar la cartelera sin documentos
+                if (documentoCount > 0) {
+                    alert('No puedes eliminar la cartelera porque tiene documentos asociados.');
+                } else {
+                    fetch(`/eliminar_cartelera/${carteleraId}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-Token': csrfToken // Asegúrate de incluir el token CSRF
+                        }
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            location.reload(); // Recargar la página para ver los cambios
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                }
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
